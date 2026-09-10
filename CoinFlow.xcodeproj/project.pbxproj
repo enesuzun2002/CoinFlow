@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7B43528F30530F56003BF02E /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7B43528E30530F4E003BF02E /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7B43527230530E93003BF02E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		7B43526430530E92003BF02E /* CoinFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoinFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B43527130530E93003BF02E /* CoinFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoinFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B43527B30530E93003BF02E /* CoinFlowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CoinFlowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B43528E30530F4E003BF02E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +80,7 @@
 		7B43525B30530E92003BF02E = {
 			isa = PBXGroup;
 			children = (
+				7B43528E30530F4E003BF02E /* README.md */,
 				7B43526630530E92003BF02E /* CoinFlow */,
 				7B43527430530E93003BF02E /* CoinFlowTests */,
 				7B43527E30530E93003BF02E /* CoinFlowUITests */,
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B43528F30530F56003BF02E /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
