@@ -14,8 +14,8 @@ final class CoinService: CoinServiceProtocol {
         self.networkClient = networkClient
     }
 
-    func fetchCoins(currentPage: Int) async throws -> [Coin] {
-        let endpoint = CoinGeckoEndpoint.markets(page: currentPage)
+    func fetchCoins(page: Int) async throws -> [Coin] {
+        let endpoint = CoinGeckoEndpoint.markets(page: page)
         
         do {
             return try await networkClient.execute(endpoint: endpoint)

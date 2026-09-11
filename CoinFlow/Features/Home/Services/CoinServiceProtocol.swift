@@ -8,5 +8,5 @@
 import Foundation
 
 protocol CoinServiceProtocol {
-    func fetchCoins(currentPage: Int) async throws -> [Coin]
+    func fetchCoins(page: Int) async throws -> [Coin]
 }
