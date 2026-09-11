@@ -7,7 +7,10 @@
 
 import Foundation
 
-struct CoinState: Codable {
-    let coins: [Coin]
-    let isLoading: Bool
+struct CoinState {
+    var coins: [Coin]
+    var isLoading: Bool
+    var errorMessage: String?
+    var currentPage: Int = 1
+    var isLastPage: Bool = false
 }
