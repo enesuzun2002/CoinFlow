@@ -8,41 +8,65 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 struct CoinListView: View {
-    @State private var viewModel = CoinViewModel(
-        state: CoinState(coins: [], isLoading: false),
-        service: CoinService(networkClient: NetworkClient())
-    )
-    
-    var body: some View {
-        ZStack {
-            if viewModel.state.isLoading && viewModel.state.coins.isEmpty {
-                ProgressView()
-            } else {
-                List {
-                    ForEach(viewModel.state.coins) { coin in
-                        Text(coin.name)
-                            .onAppear {
-                                Task {
-                                    await viewModel.fetchNextPageIfNeeded(for: coin)
-                                }
-                            }
-                    }
+    // 1. Durumu bu ekran yönetir
+    @State private var viewModel: CoinViewModel
 
-                    // Inline bottom spinner while loading subsequent pages
-                    if viewModel.state.isLoading && !viewModel.state.coins.isEmpty {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
+    // 2. Mock / Test enjeksiyonu için
+    init(viewModel: CoinViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
+
+    // 3. Canlı uygulama için (Parametresiz varsayılan)
+    init() {
+        self.init(viewModel: CoinViewModel(service: CoinService(networkClient: NetworkClient())))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                if viewModel.state.isLoading && viewModel.state.coins.isEmpty {
+                    ProgressView()
+                } else {
+                    List {
+                        ForEach(viewModel.state.coins) { coin in
+                            CoinRowView(coin: coin)
+                                .onAppear {
+                                    Task {
+                                        await viewModel.fetchNextPageIfNeeded(for: coin)
+                                    }
+                                }
                         }
-                        .listRowSeparator(.hidden)
+
+                        if viewModel.state.isLoading && !viewModel.state.coins.isEmpty {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
+                            .listRowSeparator(.hidden)
+                        }
+                    }
+                    .listStyle(.plain)
+                    .refreshable{
+                        await viewModel.refreshCoins()
                     }
                 }
             }
-        }
-        .task {
-            await viewModel.fetchCoins()
+            .navigationTitle("Piyasa")
+            .task {
+                if viewModel.state.coins.isEmpty {
+                    await viewModel.fetchCoins()
+                }
+            }
         }
     }
+}
+
+// MARK: - Previews
+#Preview("Mock Servis") {
+    CoinListView(
+        viewModel: CoinViewModel(service: MockCoinService())
+    )
 }
