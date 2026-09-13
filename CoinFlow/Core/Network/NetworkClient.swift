@@ -21,7 +21,7 @@ final class NetworkClient: NetworkClientProtocol {
         session: URLSession = .shared,
         decoder: JSONDecoder = {
             let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.keyDecodingStrategy = .useDefaultKeys
             return decoder
         }()
     ) {
