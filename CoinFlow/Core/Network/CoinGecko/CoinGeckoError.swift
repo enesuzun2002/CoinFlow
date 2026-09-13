@@ -23,7 +23,7 @@ enum CoinGeckoError: Error, LocalizedError {
 
     init(from networkError: NetworkError) {
         switch networkError {
-        case .httpError(let statusCode, let data):
+        case .httpError(let statusCode, _):
 
             switch statusCode {
             case 400:
