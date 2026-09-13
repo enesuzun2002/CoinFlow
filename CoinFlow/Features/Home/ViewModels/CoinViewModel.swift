@@ -14,7 +14,10 @@ final class CoinViewModel {
     
     private let service: CoinServiceProtocol
     
-    init(state: CoinState, service: CoinServiceProtocol) {
+    init(
+        state: CoinState = CoinState(coins: [], isLoading: false),
+        service: CoinServiceProtocol
+    ) {
         self.state = state
         self.service = service
     }
@@ -42,13 +45,23 @@ final class CoinViewModel {
                 return
             }
              
+            // CoinViewModel.swift içindeki do bloğu:
             if state.currentPage == 1 {
                 state.coins = newCoins
             } else {
-                state.coins.append(contentsOf: newCoins)
+                // Zaten listede olan coinleri filtrele (duplicate engelleme)
+                let existingIDs = Set(state.coins.map(\.id))
+                let uniqueNewCoins = newCoins.filter { !existingIDs.contains($0.id) }
+                state.coins.append(contentsOf: uniqueNewCoins)
             }
         } catch {
             state.errorMessage = error.localizedDescription
         }
+    }
+    
+    func refreshCoins() async {
+        state.currentPage = 1
+        state.isLastPage = false
+        await fetchCoins()
     }
 }
