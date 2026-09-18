@@ -11,57 +11,89 @@ import Foundation
 @MainActor
 final class CoinViewModel {
     var state: CoinState
-    
+
     private let service: CoinServiceProtocol
-    
+
     init(
-        state: CoinState = CoinState(coins: [], isLoading: false),
+        state: CoinState = .idle,
         service: CoinServiceProtocol
     ) {
         self.state = state
         self.service = service
     }
-    
-    func fetchNextPageIfNeeded(for coin: Coin) async {
-        // 1. Only trigger if the coin that just appeared is the very last item in the list
-        guard coin.id == state.coins.last?.id else { return }
-            
-        // 2. Prevent concurrent duplicate fetches and respect end of data
-        guard !state.isLoading && !state.isLastPage else { return }
 
-        state.currentPage += 1
-        await fetchCoins()
-        }
-    
-    func fetchCoins() async {
-        state.isLoading = true
-        defer { state.isLoading = false }
-         
+    func loadInitialCoins() async {
+        guard state == .idle else { return }
+        state = .initialLoading
+
         do {
-            let newCoins = try await service.fetchCoins(page: state.currentPage)
-            
-            if newCoins.isEmpty {
-                state.isLastPage = true
-                return
-            }
-             
-            // CoinViewModel.swift içindeki do bloğu:
-            if state.currentPage == 1 {
-                state.coins = newCoins
-            } else {
-                // Zaten listede olan coinleri filtrele (duplicate engelleme)
-                let existingIDs = Set(state.coins.map(\.id))
-                let uniqueNewCoins = newCoins.filter { !existingIDs.contains($0.id) }
-                state.coins.append(contentsOf: uniqueNewCoins)
-            }
+            let coins = try await service.fetchCoins(page: 1)
+            state = .loaded(
+                CoinState.Content(
+                    coins: coins,
+                    currentPage: 1,
+                    isLastPage: coins.isEmpty
+                )
+            )
         } catch {
-            state.errorMessage = error.localizedDescription
+            state = .failed(message: error.localizedDescription)
         }
     }
-    
+
     func refreshCoins() async {
-        state.currentPage = 1
-        state.isLastPage = false
-        await fetchCoins()
+        do {
+            let coins = try await service.fetchCoins(page: 1)
+            state = .loaded(
+                CoinState.Content(
+                    coins: coins,
+                    currentPage: 1,
+                    isLastPage: coins.isEmpty
+                )
+            )
+        } catch {
+            state = .failed(message: error.localizedDescription)
+        }
+    }
+
+    func fetchNextPageIfNeeded(for coin: Coin) async {
+        // Extract content; only paginate if we are in the .loaded phase
+        guard case .loaded(var content) = state else { return }
+
+        // Prevent duplicate loads or loading beyond last page
+        guard !content.isPaginating && !content.isLastPage else { return }
+        
+        // Only fetch next page if we are at the last item
+        guard coin.id == content.coins.last?.id else { return }
+
+        // 1. Mark pagination in progress (shows footer spinner)
+        content.isPaginating = true
+        state = .loaded(content)
+
+        do {
+            let nextPage = content.currentPage + 1
+            let newCoins = try await service.fetchCoins(page: nextPage)
+
+            guard case .loaded(var currentContent) = state else { return }
+
+            if newCoins.isEmpty {
+                currentContent.isLastPage = true
+            } else {
+                let existingIDs = Set(currentContent.coins.map(\.id))
+                let uniqueCoins = newCoins.filter {
+                    !existingIDs.contains($0.id)
+                }
+
+                currentContent.coins.append(contentsOf: uniqueCoins)
+                currentContent.currentPage = nextPage
+            }
+
+            currentContent.isPaginating = false
+            state = .loaded(currentContent)
+
+        } catch {
+            guard case .loaded(var currentContent) = state else { return }
+            currentContent.isPaginating = false
+            state = .loaded(currentContent)
+        }
     }
 }

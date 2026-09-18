@@ -5,68 +5,115 @@
 //  Created by Enes Murat Uzun on 11.09.2026.
 //
 
-import Foundation
 import SwiftUI
 
 @MainActor
 struct CoinListView: View {
-    // 1. Durumu bu ekran yönetir
     @State private var viewModel: CoinViewModel
 
-    // 2. Mock / Test enjeksiyonu için
     init(viewModel: CoinViewModel) {
-        _viewModel = State(initialValue: viewModel)
+        _viewModel = State(wrappedValue: viewModel)
     }
 
-    // 3. Canlı uygulama için (Parametresiz varsayılan)
+    // Explicit dependency injection (e.g. for testing / mocks)
+    init(service: CoinServiceProtocol) {
+        _viewModel = State(wrappedValue: CoinViewModel(service: service))
+    }
+
+    // Default initializer running on @MainActor
     init() {
-        self.init(viewModel: CoinViewModel(service: CoinService(networkClient: NetworkClient())))
+        let service = CoinService(networkClient: NetworkClient())
+        _viewModel = State(wrappedValue: CoinViewModel(service: service))
     }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                if viewModel.state.isLoading && viewModel.state.coins.isEmpty {
+            Group {
+                switch viewModel.state {
+                case .idle, .initialLoading:
                     ProgressView()
-                } else {
-                    List {
-                        ForEach(viewModel.state.coins) { coin in
-                            CoinRowView(coin: coin)
-                                .onAppear {
-                                    Task {
-                                        await viewModel.fetchNextPageIfNeeded(for: coin)
-                                    }
-                                }
-                        }
 
-                        if viewModel.state.isLoading && !viewModel.state.coins.isEmpty {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                Spacer()
-                            }
-                            .listRowSeparator(.hidden)
+                case .failed(let message):
+                    ContentUnavailableView {
+                        Label(
+                            "Bir Hata Oluştu",
+                            systemImage: "exclamationmark.triangle"
+                        )
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("Tekrar Dene") {
+                            Task { await viewModel.loadInitialCoins() }
                         }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .listStyle(.plain)
-                    .refreshable{
-                        await viewModel.refreshCoins()
-                    }
+
+                case .loaded(let content):
+                    coinList(content: content)
                 }
             }
             .navigationTitle("Piyasa")
             .task {
-                if viewModel.state.coins.isEmpty {
-                    await viewModel.fetchCoins()
-                }
+                await viewModel.loadInitialCoins()
             }
+        }
+    }
+
+    // MARK: - Subviews
+
+    @ViewBuilder
+    private func coinList(content: CoinState.Content) -> some View {
+        List {
+            ForEach(content.coins) { coin in
+                CoinRowView(coin: coin)
+                    .task {
+                        // Spawn task only on last item and if we aren't in last page
+                        if(coin.id == content.coins.last?.id && !content.isLastPage) {
+                            await viewModel.fetchNextPageIfNeeded(for: coin)
+                        }
+                    }
+            }
+
+            if content.isPaginating {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .listRowSeparator(.hidden)
+            }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            await viewModel.refreshCoins()
         }
     }
 }
 
 // MARK: - Previews
-#Preview("Mock Servis") {
+
+#Preview("Loaded") {
     CoinListView(
-        viewModel: CoinViewModel(service: MockCoinService())
+        viewModel: CoinViewModel(
+            service: MockCoinService()
+        )
+    )
+}
+
+#Preview("Initial Loading") {
+    CoinListView(
+        viewModel: CoinViewModel(
+            state: .initialLoading,
+            service: MockCoinService()
+        )
+    )
+}
+
+#Preview("Error State") {
+    CoinListView(
+        viewModel: CoinViewModel(
+            state: .failed(message: "İnternet bağlantısı kurulamadı."),
+            service: MockCoinService()
+        )
     )
 }
