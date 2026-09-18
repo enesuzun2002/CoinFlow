@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CoinRowView: View {
     let coin: Coin
+    
     var body: some View {
         HStack(spacing: 4){
             NetworkImageView(image: coin.image, width: 40.0, height: 40.0).clipShape(Circle()).padding(.trailing, 4)
@@ -19,12 +20,16 @@ struct CoinRowView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {
-                Text(coin.currentPrice, format: .currency(code: "USD").precision(.fractionLength(2...6))).font(.subheadline.bold())
-                if let priceChange = coin.priceChangePercentage24h {
-                    Text(priceChange / 100, format: .percent.precision(.fractionLength(2))).font(.caption.bold()).foregroundStyle(.white)
+                Text(coin.formattedPrice)
+                    .font(.subheadline.bold())
+
+                if let priceChange = coin.formattedPriceChange {
+                    Text(priceChange)
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(priceChange > 0 ?  .green : .red ,in: RoundedRectangle(cornerRadius: 4))
+                        .background(coin.isPositiveChange ? .green : .red, in: RoundedRectangle(cornerRadius: 4))
                 }
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
